@@ -1,0 +1,28 @@
+[ranking]
+board = "IWhisper"
+timezone = "Asia/Shanghai"
+trend_window_minutes = 30
+limit = 10
+
+[ranking.components]
+current_heat_weight = 0.55
+growth_speed_weight = 0.40
+freshness_weight = 0.05
+
+[ranking.current_heat]
+reply_weight = 8.0
+like_weight = 5.0
+dislike_weight = -2.0
+view_weight = 0.2
+
+[ranking.growth_speed]
+reply_weight = 30.0
+like_weight = 14.0
+dislike_weight = -4.0
+view_weight = 1.0
+
+[ranking.freshness]
+max_bonus = 100.0
+half_life_minutes = 120
+cutoff_minutes = 720
+
