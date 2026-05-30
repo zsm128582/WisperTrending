@@ -1,0 +1,3 @@
+# WisperTrending currently uses only Python standard-library runtime modules.
+# Python 3.11+ is recommended for the built-in zoneinfo/sqlite3 workflow.
+

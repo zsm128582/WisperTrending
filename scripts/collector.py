@@ -503,6 +503,11 @@ def main() -> int:
     parser.add_argument("--page-delay", type=float, default=0.0, help="seconds to wait between pages")
     parser.add_argument("--out", default="data/snapshots.jsonl")
     parser.add_argument(
+        "--sqlite-db",
+        help="optional SQLite database path; when set, snapshots are saved to SQLite",
+    )
+    parser.add_argument("--sqlite-source", default="collector", help="source label for SQLite runs")
+    parser.add_argument(
         "--include-reactions",
         action="store_true",
         help="fetch each article page and parse like/dislike counts",
@@ -546,6 +551,15 @@ def main() -> int:
             reaction_pages=args.reaction_pages,
         )
 
+    saved_run = None
+    if not args.dry_run and args.sqlite_db:
+        sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+        from storage import connect
+
+        with connect(args.sqlite_db) as storage:
+            storage.init_db()
+            saved_run = storage.save_snapshot(posts, board=args.board, source=args.sqlite_source)
+
     if not args.dry_run:
         append_jsonl(Path(args.out), posts)
 
@@ -556,6 +570,7 @@ def main() -> int:
                 "login_user": login_payload.get("id"),
                 "posts": len(posts),
                 "output": None if args.dry_run else args.out,
+                "sqlite_run": None if saved_run is None else saved_run.__dict__,
                 "sample": posts[:3],
                 "view_count_available": any(p.get("view_count") is not None for p in posts),
                 "reaction_count_available": any(
