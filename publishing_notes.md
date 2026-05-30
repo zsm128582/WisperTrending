@@ -96,7 +96,7 @@ Markdown-in-article syntax was also tested successfully on the `test` board:
 ```text
 article_id = 76275
 title = WhisperTrending Markdown 格式测试 2026-05-30
-body wrapper = [md]...[/md]
+body wrapper = none; publish the Markdown body directly
 ```
 
 The test body used a heading, list, quote, link, and color tags inside the Markdown wrapper.
@@ -135,6 +135,6 @@ python scripts\publish_trending.py --db data\wisper_trending.sqlite3 --config co
 - If no record exists for `(source_board, publish_board, run_date, kind)`, it creates a new thread.
 - If a record exists, it edits the recorded `article_id`.
 - The generated preview is written to `preview.md`.
-- The actual forum body is wrapped as `[md]...[/md]`.
+- The actual forum body is published directly as Markdown. Current forum behavior does not require `[md]...[/md]`.
 
 For safety, use `--publish-board test` during rehearsals.
