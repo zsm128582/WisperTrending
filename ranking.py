@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Ranking algorithm for WisperTrending 今日十大."""
+"""Ranking algorithm for WisperTrending daily top posts."""
 
 from __future__ import annotations
 
@@ -322,27 +322,73 @@ def load_ranking_inputs_from_db(
 
 
 def format_top10(rows: list[dict[str, Any]], *, as_of: str, window_minutes: int) -> str:
-    lines = [f"WisperTrending 今日悄悄话十大 - {as_of}", ""]
-    lines.append(f"统计窗口：最近 {window_minutes} 分钟；综合分 = 当前总热度 + 增长速度 + 轻微新帖加成")
-    lines.append("")
+    return format_preview_markdown(rows, as_of=as_of, window_minutes=window_minutes)
+
+
+def format_preview_markdown(rows: list[dict[str, Any]], *, as_of: str, window_minutes: int) -> str:
+    display_time = format_display_time(as_of)
+    lines = [f"【WhisperTrending】今日悄悄话热度榜 {display_time}", ""]
+    lines.extend(
+        [
+            "统计说明：",
+            "本榜单基于今日“悄悄话”板块公开可见的帖子列表与站内互动数据生成。",
+            f"排序综合考虑当前热度、近 {window_minutes} 分钟增长速度与轻微发帖时间加成。",
+            "仅展示标题、链接和聚合指标，不展示发帖人信息或匿名正文。",
+            "",
+        ]
+    )
     for index, row in enumerate(rows[:10], start=1):
+        reply_text = blue(f"回复 {row['reply_count']}")
+        like_text = green(f"赞 {row['total_like_count']}")
+        dislike_text = red(f"踩 {row['total_dislike_count']}")
+        reply_delta_text = blue(f"+{row['reply_delta']} 回复")
+        like_delta_text = green(f"+{row['like_delta']} 赞")
+        dislike_delta_text = red(f"+{row['dislike_delta']} 踩")
         lines.append(f"{index}. {row['title']}")
+        lines.append("   " f"{reply_text} / {like_text} / {dislike_text}")
         lines.append(
             "   "
-            f"综合 {row['final_score']:.1f} | "
-            f"总热度 {row['current_heat_score']:.1f} | "
-            f"增长 {row['growth_speed_score']:.1f} | "
-            f"新帖 {row['freshness_bonus']:.1f}"
+            f"近{window_minutes}分钟 "
+            f"{reply_delta_text} "
+            f"{like_delta_text} "
+            f"{dislike_delta_text}"
         )
         lines.append(
             "   "
-            f"回复 {row['reply_count']} (+{row['reply_delta']}) | "
-            f"赞 {row['total_like_count']} (+{row['like_delta']}) | "
-            f"踩 {row['total_dislike_count']} (+{row['dislike_delta']})"
+            f"综合 {row['final_score']:.1f} / "
+            f"热度 {row['current_heat_score']:.1f} / "
+            f"增长 {row['growth_speed_score']:.1f}"
         )
         if row.get("url"):
-            lines.append(f"   {row['url']}")
-    return "\n".join(lines)
+            lines.append(f"   链接：{row['url']}")
+        lines.append("")
+    lines.extend(
+        [
+            "如有帖子已删除、锁定或不适合传播，请以原帖状态为准；本帖只做站内趋势索引，不保存或展示匿名正文。",
+        ]
+    )
+    return "\n".join(lines).rstrip() + "\n"
+
+
+def format_display_time(value: str) -> str:
+    parsed = parse_datetime(value)
+    return parsed.strftime("%Y-%m-%d %H:%M")
+
+
+def color(text: str, value: str) -> str:
+    return f"[color={value}]{text}[/color]"
+
+
+def blue(text: str) -> str:
+    return color(text, "#1f6feb")
+
+
+def green(text: str) -> str:
+    return color(text, "#2da44e")
+
+
+def red(text: str) -> str:
+    return color(text, "#cf222e")
 
 
 def main() -> int:
@@ -353,6 +399,7 @@ def main() -> int:
     parser.add_argument("--date", help="YYYY-MM-DD; defaults to latest snapshot date")
     parser.add_argument("--as-of", help="ISO datetime; defaults to latest snapshot")
     parser.add_argument("--limit", type=int)
+    parser.add_argument("--preview-out", help="write forum markdown preview to this path")
     parser.add_argument("--json", action="store_true", help="emit JSON instead of forum text")
     args = parser.parse_args()
 
@@ -373,10 +420,17 @@ def main() -> int:
         "count": len(rows),
         "top": rows[:limit],
     }
+    preview = format_preview_markdown(
+        rows[:limit],
+        as_of=as_of,
+        window_minutes=config.trend_window_minutes,
+    )
+    if args.preview_out:
+        Path(args.preview_out).write_text(preview, encoding="utf-8")
     if args.json:
         print(json_dumps(payload))
     else:
-        print(format_top10(rows[:limit], as_of=as_of, window_minutes=config.trend_window_minutes))
+        print(preview, end="")
     return 0
 
 

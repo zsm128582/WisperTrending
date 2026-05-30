@@ -236,6 +236,86 @@ class Storage:
         ).fetchall()
         return [dict(row) for row in rows]
 
+    def get_publication_record(
+        self,
+        *,
+        source_board: str,
+        publish_board: str,
+        run_date: str,
+        kind: str = "daily_top",
+    ) -> dict[str, Any] | None:
+        row = self.conn.execute(
+            """
+            SELECT *
+            FROM publication_records
+            WHERE source_board = ?
+              AND publish_board = ?
+              AND run_date = ?
+              AND kind = ?
+            """,
+            (source_board, publish_board, run_date, kind),
+        ).fetchone()
+        return dict(row) if row else None
+
+    def save_publication_record(
+        self,
+        *,
+        source_board: str,
+        publish_board: str,
+        run_date: str,
+        article_id: str,
+        subject: str,
+        url: str,
+        content_hash: str,
+        action: str,
+        kind: str = "daily_top",
+        metadata: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        now = utc_now_iso()
+        with self.transaction() as conn:
+            conn.execute(
+                """
+                INSERT INTO publication_records (
+                    source_board, publish_board, run_date, kind, article_id,
+                    subject, url, content_hash, first_published_at,
+                    last_published_at, last_action, metadata_json
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(source_board, publish_board, run_date, kind)
+                DO UPDATE SET
+                    article_id = excluded.article_id,
+                    subject = excluded.subject,
+                    url = excluded.url,
+                    content_hash = excluded.content_hash,
+                    last_published_at = excluded.last_published_at,
+                    last_action = excluded.last_action,
+                    metadata_json = excluded.metadata_json
+                """,
+                (
+                    source_board,
+                    publish_board,
+                    run_date,
+                    kind,
+                    article_id,
+                    subject,
+                    url,
+                    content_hash,
+                    now,
+                    now,
+                    action,
+                    json_dumps(metadata or {}),
+                ),
+            )
+        record = self.get_publication_record(
+            source_board=source_board,
+            publish_board=publish_board,
+            run_date=run_date,
+            kind=kind,
+        )
+        if record is None:
+            raise RuntimeError("publication record was not saved")
+        return record
+
     def _upsert_post(self, conn: sqlite3.Connection, post: dict[str, Any]) -> None:
         post_id = required_str(post, "post_id")
         conn.execute(
@@ -469,6 +549,23 @@ CREATE TABLE IF NOT EXISTS floor_snapshots (
     UNIQUE(run_id, floor_article_id)
 );
 
+CREATE TABLE IF NOT EXISTS publication_records (
+    publication_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    source_board TEXT NOT NULL,
+    publish_board TEXT NOT NULL,
+    run_date TEXT NOT NULL,
+    kind TEXT NOT NULL DEFAULT 'daily_top',
+    article_id TEXT NOT NULL,
+    subject TEXT NOT NULL,
+    url TEXT NOT NULL,
+    content_hash TEXT NOT NULL,
+    first_published_at TEXT NOT NULL,
+    last_published_at TEXT NOT NULL,
+    last_action TEXT NOT NULL,
+    metadata_json TEXT NOT NULL DEFAULT '{}',
+    UNIQUE(source_board, publish_board, run_date, kind)
+);
+
 CREATE INDEX IF NOT EXISTS idx_runs_board_date
     ON snapshot_runs(board, run_date, snapshot_ts);
 CREATE INDEX IF NOT EXISTS idx_post_snapshots_board_time
@@ -481,6 +578,8 @@ CREATE INDEX IF NOT EXISTS idx_floor_snapshots_post_time
     ON floor_snapshots(post_id, snapshot_ts);
 CREATE INDEX IF NOT EXISTS idx_floor_snapshots_board_date
     ON floor_snapshots(board, run_date, snapshot_ts);
+CREATE INDEX IF NOT EXISTS idx_publication_records_date
+    ON publication_records(source_board, publish_board, run_date);
 """
 
 
