@@ -10,7 +10,7 @@ WhisperTrending 是一个面向北邮人论坛“悄悄话”板块的站内趋�
 - 计算今日 Top 10。
 - 生成论坛帖子内容 `preview.md`。
 - 支持发布/修改论坛帖子，若当天已发布则修改已有文章。
-- 已在 `test` 测试板块验证普通发帖、编辑和 `[md][/md]` Markdown 包裹格式。
+- 已在 `test` 测试板块验证普通发帖、编辑和 Markdown 正文格式。
 
 本项目只做站内趋势索引，不保存或展示匿名帖正文，不展示发帖人信息。
 
@@ -188,7 +188,7 @@ python scripts\publish_trending.py --db data\wisper_trending.sqlite3 --config co
 - 查询 `publication_records` 是否已有当天记录。
 - 如果没有当天记录，调用发帖接口新建主题。
 - 如果已有当天文章 ID，调用编辑接口更新原帖。
-- 发布内容会包在 `[md]...[/md]` 中，论坛会按 Markdown 渲染。
+- 发布内容直接使用 Markdown 正文；当前测试显示不需要再包裹 `[md]...[/md]`。
 
 适合外部定时任务周期性调用：
 
@@ -330,7 +330,7 @@ python -m py_compile storage.py ranking.py scripts\collector.py scripts\publishe
 - 登录、采集、发帖、改帖接口更容易结构化调用。
 - Web 端可以直接解析赞、踩等页面指标。
 - 发帖和编辑已在测试板块验证。
-
+1
 Telnet 可作为后备方案继续保留，但目前不是主路径。
 
 ## 注意事项

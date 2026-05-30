@@ -30,8 +30,8 @@ from storage import connect, json_dumps, local_date, parse_datetime
 DEFAULT_PUBLISH_BOARD = "Talking"
 
 
-def markdown_wrapper(content: str) -> str:
-    return "[md]\n" + content.rstrip() + "\n[/md]\n"
+def forum_content(content: str) -> str:
+    return content.rstrip() + "\n"
 
 
 def subject_for(as_of: str) -> str:
@@ -73,7 +73,7 @@ def main() -> int:
     )
     Path(args.preview_out).write_text(preview, encoding="utf-8")
 
-    post_content = markdown_wrapper(preview)
+    post_content = forum_content(preview)
     content_hash = hashlib.sha256(post_content.encode("utf-8")).hexdigest()
     run_date = args.date or local_date(as_of)
     subject = subject_for(as_of)
@@ -158,4 +158,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-
