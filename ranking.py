@@ -364,7 +364,9 @@ def format_preview_markdown(rows: list[dict[str, Any]], *, as_of: str, window_mi
         lines.append("")
     lines.extend(
         [
+            "每30分钟更新一次榜单，更新将修改本贴原文。"
             "如有帖子已删除、锁定或不适合传播，请以原帖状态为准；本帖只做站内趋势索引，不保存或展示匿名正文。",
+            "项目链接：https://github.com/zsm128582/WisperTrending.git",
         ]
     )
     return "\n".join(lines).rstrip() + "\n"
