@@ -1,0 +1,7 @@
+.env
+.byr_cookies.txt
+.scratch/
+data/
+__pycache__/
+*.pyc
+
